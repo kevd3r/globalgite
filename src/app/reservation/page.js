@@ -1,4 +1,3 @@
-// app/reservation/page.js
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -10,7 +9,6 @@ export default function Reservation() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState(null);
 
-  // Utiliser watch pour récupérer la valeur de startDate en temps réel
   const startDate = watch("startDate");
   const today = new Date().toISOString().split('T')[0];
 
@@ -18,7 +16,8 @@ export default function Reservation() {
     setIsSubmitting(true);
     setStatus(null);
 
-    const response = await fetch('/api/send-email', {
+    // L'URL de l'API doit pointer vers notre nouvelle route de réservations
+    const response = await fetch('/api/reservations', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,7 +25,16 @@ export default function Reservation() {
       body: JSON.stringify(data),
     });
 
-    const result = await response.json();
+    // On s'assure que la réponse est un JSON valide
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      console.error("Erreur de parsing JSON de la réponse:", e);
+      setStatus("error");
+      setIsSubmitting(false);
+      return;
+    }
 
     if (result.success) {
       setStatus("success");
@@ -87,7 +95,7 @@ export default function Reservation() {
                 <input
                   id="startDate"
                   type="date"
-                  min={today} // Limite visuelle du calendrier
+                  min={today}
                   {...register("startDate", {
                     required: "La date de début est requise",
                     validate: (value) => value >= today || "La date de début doit être aujourd'hui ou dans le futur"
@@ -101,11 +109,10 @@ export default function Reservation() {
                 <input
                   id="endDate"
                   type="date"
-                  min={startDate} // Limite visuelle : la date de fin ne peut pas être avant la date de début
+                  min={startDate}
                   {...register("endDate", {
                     required: "La date de fin est requise",
                     validate: (value) => {
-                      // S'assurer que startDate est définie et que endDate est au moins un jour après
                       const start = new Date(startDate);
                       const end = new Date(value);
                       const diffTime = Math.abs(end - start);

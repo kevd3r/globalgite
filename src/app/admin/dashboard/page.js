@@ -1,49 +1,29 @@
-// pages/admin/dashboard.js
-'use client';
-import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import Head from "next/head";
+// app/admin/dashboard/page.js
+// Pas de 'use client' ici, c'est un composant serveur
+import { PrismaClient } from '../../../generated/prisma';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import DashboardContent from "./DashboardContent"; // Importer le composant client
 
-export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+const prisma = new PrismaClient();
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/api/auth/signin");
-    }
-  }, [status, router]);
+export default async function AdminDashboardPage() {
+  // Vérification de la session côté serveur
+  const session = await getServerSession(authOptions);
 
-  if (status === "loading") {
-    return <p>Chargement...</p>;
+  // Si l'utilisateur n'est pas authentifié, le rediriger
+  if (!session) {
+    redirect("/api/auth/signin");
   }
 
-  if (status === "authenticated") {
-    return (
-      <>
-        <Head>
-          <title>Tableau de bord Admin</title>
-        </Head>
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-          <div className="p-8 bg-white rounded-lg shadow-md">
-            <h1 className="text-2xl font-bold mb-4">
-              Bienvenue, {session.user.email}
-            </h1>
-            <p className="mb-4">
-              Ceci est le tableau de bord de l&apos;administrateur.
-            </p>
-            <button
-              onClick={() => signOut()}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-            >
-              Se déconnecter
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
+  // Récupérer toutes les réservations depuis la base de données
+  const reservations = await prisma.reservation.findMany({
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
 
-  return null;
+  // Passer les données au composant client pour l'affichage
+  return <DashboardContent reservations={reservations} userEmail={session.user.email} />;
 }

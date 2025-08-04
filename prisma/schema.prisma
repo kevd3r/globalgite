@@ -20,3 +20,15 @@ model Admin {
   email    String @unique
   password String
 }
+
+model Reservation {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  startDate DateTime
+  endDate   DateTime
+  message   String?
+  status    String   @default("en attente") // Statut par défaut
+  createdAt DateTime @default(now())
+}
